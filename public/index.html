@@ -3,237 +3,334 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BotManager Pro</title>
+    <title>BotManager Pro | Dashboard</title>
+    <!-- CSS Dependencies -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
     <style>
-        body { background: #0f172a; color: white; font-family: sans-serif; }
-        .page-section { display: none; }
-        .page-section.active { display: block; }
+        body { font-family: 'Inter', sans-serif; background-color: #0b0f1a; color: #e2e8f0; scroll-behavior: smooth; }
         .sidebar-item.active { background: #1e293b; border-left: 4px solid #6366f1; color: #818cf8; }
-        .glass { background: rgba(30, 41, 59, 0.5); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.05); }
+        .glass-card { background: rgba(30, 41, 59, 0.4); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.05); }
+        .page-section { display: none; }
+        .page-section.active { display: block; animation: fadeIn 0.3s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .custom-scrollbar::-webkit-scrollbar { width: 5px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
     </style>
 </head>
-<body class="flex h-screen overflow-hidden">
+<body class="h-screen flex overflow-hidden">
 
-    <!-- Sidebar -->
-    <aside class="w-64 bg-slate-900 border-r border-slate-800 flex flex-col">
-        <div class="p-6 text-2xl font-bold text-indigo-500 flex items-center">
-            <i class="fas fa-robot mr-2"></i> BotPro
+    <!-- MOBILE OVERLAY -->
+    <div id="mobile-menu" class="hidden fixed inset-0 bg-black/50 z-40 md:hidden" onclick="toggleSidebar()"></div>
+
+    <!-- SIDEBAR -->
+    <aside id="sidebar" class="fixed inset-y-0 left-0 w-64 bg-slate-900 border-r border-slate-800 z-50 transform -translate-x-full md:translate-x-0 md:relative transition-transform duration-300 flex flex-col">
+        <div class="p-6">
+            <h1 class="text-2xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
+                <i class="fas fa-robot mr-2"></i>BotManager
+            </h1>
         </div>
-        <nav class="flex-1">
-            <button onclick="showPage('overview')" id="nav-overview" class="sidebar-item active w-full text-left px-6 py-4 transition-all">
-                <i class="fas fa-th-large mr-2"></i> Overview
+        
+        <nav class="flex-1 mt-4">
+            <button onclick="showPage('overview')" id="nav-overview" class="sidebar-item active w-full flex items-center px-6 py-4 transition-all hover:bg-slate-800">
+                <i class="fas fa-chart-pie w-6"></i> Overview
             </button>
-            <button onclick="showPage('bots')" id="nav-bots" class="sidebar-item w-full text-left px-6 py-4 transition-all">
-                <i class="fas fa-server mr-2"></i> My Bots
+            <button onclick="showPage('bots')" id="nav-bots" class="sidebar-item w-full flex items-center px-6 py-4 transition-all hover:bg-slate-800">
+                <i class="fas fa-server w-6"></i> My Bots
             </button>
-            <button onclick="showPage('users')" id="nav-users" class="sidebar-item w-full text-left px-6 py-4 transition-all">
-                <i class="fas fa-users mr-2"></i> User List
+            <button onclick="showPage('users')" id="nav-users" class="sidebar-item w-full flex items-center px-6 py-4 transition-all hover:bg-slate-800">
+                <i class="fas fa-users w-6"></i> Smart User List
+            </button>
+            <button onclick="showPage('broadcast')" id="nav-broadcast" class="sidebar-item w-full flex items-center px-6 py-4 transition-all hover:bg-slate-800">
+                <i class="fas fa-bullhorn w-6"></i> Global Broadcast
             </button>
         </nav>
+
+        <div class="p-4 border-t border-slate-800">
+            <div class="bg-slate-950 p-3 rounded-xl flex items-center gap-3">
+                <div class="h-8 w-8 rounded-full bg-indigo-500 flex items-center justify-center font-bold text-xs">AD</div>
+                <div>
+                    <p class="text-xs font-semibold">Admin Panel</p>
+                    <p id="connection-status" class="text-[10px] text-green-500 flex items-center">
+                        <span class="h-1.5 w-1.5 bg-green-500 rounded-full mr-1.5 animate-pulse"></span> Connected
+                    </p>
+                </div>
+            </div>
+        </div>
     </aside>
 
-    <!-- Content -->
-    <main class="flex-1 flex flex-col overflow-hidden">
-        <header class="h-16 border-b border-slate-800 flex items-center justify-between px-8 bg-slate-900/50">
-            <h2 id="page-title" class="text-lg font-semibold">Overview</h2>
-            <button onclick="toggleModal('addBotModal', true)" class="bg-indigo-600 hover:bg-indigo-700 px-4 py-2 rounded-lg text-sm font-bold transition-all">
-                <i class="fas fa-plus mr-2"></i> Add Bot
+    <!-- MAIN CONTENT -->
+    <main class="flex-1 flex flex-col min-w-0 overflow-hidden">
+        
+        <!-- HEADER -->
+        <header class="h-16 bg-slate-900/50 border-b border-slate-800 flex items-center justify-between px-4 md:px-8 shrink-0">
+            <div class="flex items-center gap-4">
+                <button onclick="toggleSidebar()" class="md:hidden text-slate-400 p-2"><i class="fas fa-bars"></i></button>
+                <h2 id="page-title" class="text-lg font-bold text-white">Overview</h2>
+            </div>
+            <button onclick="toggleModal('addBotModal', true)" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center transition-all">
+                <i class="fas fa-plus mr-2"></i> <span class="hidden sm:inline">Add New Bot</span>
             </button>
         </header>
 
-        <div class="flex-1 overflow-y-auto p-8">
+        <!-- SCROLLABLE AREA -->
+        <div class="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar">
+            
             <!-- SECTION: OVERVIEW -->
             <section id="overview" class="page-section active">
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div class="glass p-6 rounded-2xl">
-                        <p class="text-slate-400 text-xs font-bold uppercase">Total Bots</p>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                    <div class="glass-card p-6 rounded-2xl">
+                        <p class="text-slate-400 text-xs font-bold uppercase tracking-widest">Total Active Bots</p>
                         <h3 id="stat-bots" class="text-3xl font-bold mt-2">0</h3>
                     </div>
-                    <div class="glass p-6 rounded-2xl">
-                        <p class="text-slate-400 text-xs font-bold uppercase">Total Users</p>
-                        <h3 id="stat-users" class="text-3xl font-bold mt-2 text-indigo-400">0</h3>
+                    <div class="glass-card p-6 rounded-2xl border-l-4 border-indigo-500">
+                        <p class="text-slate-400 text-xs font-bold uppercase tracking-widest">Database Users</p>
+                        <h3 id="stat-users" class="text-3xl font-bold mt-2">0</h3>
                     </div>
+                    <div class="glass-card p-6 rounded-2xl border-l-4 border-emerald-500">
+                        <p class="text-slate-400 text-xs font-bold uppercase tracking-widest">New Today</p>
+                        <h3 id="stat-today" class="text-3xl font-bold mt-2 text-emerald-400">0</h3>
+                    </div>
+                    <div class="glass-card p-6 rounded-2xl">
+                        <p class="text-slate-400 text-xs font-bold uppercase tracking-widest">Platform Status</p>
+                        <h3 class="text-xl font-bold mt-2 text-indigo-400">Operational</h3>
+                    </div>
+                </div>
+
+                <div class="glass-card p-8 rounded-3xl text-center">
+                    <img src="https://cdn-icons-png.flaticon.com/512/8943/8943377.png" class="h-24 mx-auto mb-4 opacity-80" alt="Icon">
+                    <h2 class="text-2xl font-bold">Welcome to BotManager Pro</h2>
+                    <p class="text-slate-400 mt-2 max-w-lg mx-auto">Manage unlimited Telegram bots, automate broadcasts, and track user growth from a single secure dashboard.</p>
                 </div>
             </section>
 
             <!-- SECTION: BOTS -->
             <section id="bots" class="page-section">
-                <div id="bots-list" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
+                <div id="bots-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                    <!-- Dynamic Bot Cards -->
+                </div>
             </section>
 
             <!-- SECTION: USERS -->
             <section id="users" class="page-section">
-                <div class="glass rounded-2xl overflow-hidden">
-                    <table class="w-full text-left">
-                        <thead class="bg-slate-800 text-slate-400 text-xs">
-                            <tr>
-                                <th class="p-4">User</th>
-                                <th class="p-4">Bot</th>
-                                <th class="p-4">Points</th>
-                                <th class="p-4">Joined At</th>
-                            </tr>
-                        </thead>
-                        <tbody id="user-table" class="text-sm"></tbody>
-                    </table>
+                <div class="glass-card rounded-2xl overflow-hidden">
+                    <div class="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-900/30">
+                        <h3 class="font-bold">User Management</h3>
+                        <input type="text" id="userSearch" onkeyup="filterUsers()" placeholder="Search by username or ID..." class="bg-slate-900 border border-slate-700 px-4 py-2 rounded-lg text-sm outline-none focus:border-indigo-500 w-64">
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm">
+                            <thead class="bg-slate-900 text-slate-400">
+                                <tr>
+                                    <th class="px-6 py-4">User Details</th>
+                                    <th class="px-6 py-4">Linked Bot</th>
+                                    <th class="px-6 py-4">Referrals</th>
+                                    <th class="px-6 py-4">Joined Date</th>
+                                </tr>
+                            </thead>
+                            <tbody id="user-table-body" class="divide-y divide-slate-800">
+                                <!-- Dynamic Rows -->
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </section>
+
+            <!-- SECTION: BROADCAST -->
+            <section id="broadcast" class="page-section">
+                <div class="max-w-3xl mx-auto glass-card p-8 rounded-3xl">
+                    <div class="mb-8">
+                        <h3 class="text-2xl font-bold">Global Broadcast</h3>
+                        <p class="text-slate-400 text-sm">Send messages to all users of a specific bot instance.</p>
+                    </div>
+                    
+                    <div class="space-y-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Target Bot</label>
+                                <select id="bc-bot" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-xl outline-none focus:border-indigo-500 text-white"></select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Content Type</label>
+                                <select id="bc-type" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-xl outline-none focus:border-indigo-500 text-white">
+                                    <option value="text">Pure Text</option>
+                                    <option value="photo">Photo with Caption</option>
+                                    <option value="video">Video with Caption</option>
+                                    <option value="animation">GIF/Animation</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div id="bc-media-wrapper" class="hidden">
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Media URL or Telegram File ID</label>
+                            <input type="text" id="bc-media" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-xl outline-none focus:border-indigo-500" placeholder="https://example.com/image.jpg">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Message Content (HTML Supported)</label>
+                            <textarea id="bc-msg" rows="6" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-xl outline-none focus:border-indigo-500" placeholder="Hello! Welcome to our new update..."></textarea>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Inline Buttons JSON (Optional)</label>
+                            <input type="text" id="bc-btns" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-xl font-mono text-xs text-indigo-300" placeholder='[[{"text":"Open Website", "url":"https://google.com"}]]'>
+                        </div>
+
+                        <button onclick="startBroadcast()" id="bc-btn" class="w-full bg-indigo-600 hover:bg-indigo-700 py-4 rounded-2xl font-bold shadow-lg shadow-indigo-500/20 transition-all flex items-center justify-center gap-2">
+                            <i class="fas fa-paper-plane"></i> Dispatch Broadcast
+                        </button>
+                    </div>
+                </div>
+            </section>
+
         </div>
     </main>
 
-    <!-- Modal: Add Bot -->
-    <div id="addBotModal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-        <div class="glass p-8 rounded-2xl w-full max-w-md">
-            <h3 class="text-xl font-bold mb-6">Add New Bot</h3>
+    <!-- MODAL: ADD BOT -->
+    <div id="addBotModal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+        <div class="glass-card w-full max-w-md rounded-3xl p-8">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-xl font-bold">Register Bot</h3>
+                <button onclick="toggleModal('addBotModal', false)" class="text-slate-500 hover:text-white"><i class="fas fa-times"></i></button>
+            </div>
             <div class="space-y-4">
-                <input id="new-token" type="text" placeholder="Bot Token (from @BotFather)" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-xl focus:border-indigo-500 outline-none">
-                <input id="new-admin" type="text" placeholder="Admin Chat ID" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-xl focus:border-indigo-500 outline-none">
-                <button onclick="saveBot()" class="w-full bg-indigo-600 py-3 rounded-xl font-bold shadow-lg shadow-indigo-500/20">Verify & Connect</button>
-                <button onclick="toggleModal('addBotModal', false)" class="w-full text-slate-500 text-sm">Cancel</button>
+                <div>
+                    <label class="text-xs font-bold text-slate-500 uppercase">Telegram Bot Token</label>
+                    <input id="token" type="text" placeholder="123456:ABC-DEF..." class="w-full bg-slate-900 border border-slate-700 p-3 rounded-xl mt-1 outline-none focus:border-indigo-500">
+                </div>
+                <div>
+                    <label class="text-xs font-bold text-slate-500 uppercase">Owner/Admin Chat ID</label>
+                    <input id="admin" type="text" placeholder="51234567" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-xl mt-1 outline-none focus:border-indigo-500">
+                </div>
+                <button onclick="apiAddBot()" id="saveBotBtn" class="w-full bg-indigo-600 py-4 rounded-2xl font-bold mt-4 shadow-lg shadow-indigo-500/20">Verify & Link Bot</button>
             </div>
         </div>
     </div>
 
-    <!-- Modal: Edit Bot -->
-    <div id="editBotModal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto">
-        <div class="glass p-8 rounded-2xl w-full max-w-2xl my-auto">
-            <h3 class="text-xl font-bold mb-6 text-indigo-400">Settings: <span id="edit-header"></span></h3>
-            <input type="hidden" id="edit-token">
+    <!-- MODAL: EDIT BOT (Advanced) -->
+    <div id="editBotModal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4 overflow-y-auto">
+        <div class="glass-card w-full max-w-2xl rounded-3xl p-8 my-auto">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-xl font-bold">Bot Configuration: <span id="edit-title" class="text-indigo-400"></span></h3>
+                <button onclick="toggleModal('editBotModal', false)" class="text-slate-500 hover:text-white"><i class="fas fa-times"></i></button>
+            </div>
+            
+            <input type="hidden" id="edit-id">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div class="space-y-4">
-                    <label class="block text-xs font-bold text-slate-500">Welcome Message</label>
-                    <textarea id="edit-msg" rows="4" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-xl text-sm outline-none"></textarea>
-                    
-                    <label class="block text-xs font-bold text-slate-500">Media Type</label>
-                    <select id="edit-type" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-xl text-sm">
-                        <option value="text">Text Only</option>
-                        <option value="photo">Photo</option>
-                        <option value="video">Video</option>
-                        <option value="animation">GIF/Animation</option>
-                    </select>
+                    <div>
+                        <label class="text-xs font-bold text-slate-500 uppercase">Welcome Text</label>
+                        <textarea id="edit-msg" rows="4" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-xl text-sm outline-none"></textarea>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="text-xs font-bold text-slate-500 uppercase">Media Type</label>
+                            <select id="edit-type" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-xl text-xs outline-none">
+                                <option value="text">None</option>
+                                <option value="photo">Photo</option>
+                                <option value="video">Video</option>
+                                <option value="animation">GIF</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="text-xs font-bold text-slate-500 uppercase">Parse Mode</label>
+                            <select id="edit-parse" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-xl text-xs outline-none">
+                                <option value="HTML">HTML</option>
+                                <option value="Markdown">Markdown</option>
+                            </select>
+                        </div>
+                    </div>
                 </div>
+
                 <div class="space-y-4">
-                    <label class="block text-xs font-bold text-slate-500">Media URL or FileID</label>
-                    <input id="edit-media" type="text" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-xl text-sm">
-                    
-                    <label class="block text-xs font-bold text-slate-500">Force Join Channels (@channel1, @channel2)</label>
-                    <input id="edit-channels" type="text" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-xl text-sm">
+                    <div>
+                        <label class="text-xs font-bold text-slate-500 uppercase">Media FileID/URL</label>
+                        <input id="edit-media" type="text" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-xl text-xs">
+                    </div>
+                    <div>
+                        <label class="text-xs font-bold text-slate-500 uppercase">Force Join (@Channel, @Group)</label>
+                        <input id="edit-channels" type="text" placeholder="@ChannelName, @SponsorChat" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-xl text-xs">
+                    </div>
+                    <div>
+                        <label class="text-xs font-bold text-slate-500 uppercase">Inline Buttons (JSON)</label>
+                        <textarea id="edit-btns" rows="2" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-xl text-xs font-mono text-indigo-300"></textarea>
+                    </div>
                 </div>
             </div>
-            <div class="mt-8 flex space-x-3">
-                <button onclick="updateBot()" class="flex-1 bg-indigo-600 py-3 rounded-xl font-bold">Save Changes</button>
-                <button onclick="toggleModal('editBotModal', false)" class="px-6 py-3 border border-slate-700 rounded-xl">Close</button>
+
+            <div class="flex gap-4 mt-8">
+                <button onclick="apiUpdateBot()" class="flex-1 bg-indigo-600 py-3 rounded-xl font-bold">Apply Changes</button>
+                <button onclick="toggleModal('editBotModal', false)" class="flex-1 bg-slate-800 py-3 rounded-xl font-bold">Discard</button>
             </div>
         </div>
     </div>
 
+    <!-- SCRIPTS -->
     <script>
-        function showPage(id) {
+        // NAVIGATION LOGIC
+        function showPage(pageId) {
+            // Update Visibility
             document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
-            document.querySelectorAll('.sidebar-item').forEach(i => i.classList.remove('active'));
-            document.getElementById(id).classList.add('active');
-            document.getElementById('nav-' + id).classList.add('active');
-            document.getElementById('page-title').innerText = id.charAt(0).toUpperCase() + id.slice(1);
+            document.getElementById(pageId).classList.add('active');
             
-            if(id === 'overview') fetchStats();
-            if(id === 'bots') fetchBots();
-            if(id === 'users') fetchUsers();
+            // Update Sidebar UI
+            document.querySelectorAll('.sidebar-item').forEach(i => i.classList.remove('active'));
+            document.getElementById('nav-' + pageId).classList.add('active');
+            
+            // Update Title
+            document.getElementById('page-title').innerText = pageId.charAt(0).toUpperCase() + pageId.slice(1);
+            
+            // Data Loading
+            if(pageId === 'overview') fetchStats();
+            if(pageId === 'bots') fetchBots();
+            if(pageId === 'users') fetchUsers();
+            if(pageId === 'broadcast') populateBotSelect();
+
+            // Auto-close mobile sidebar
+            if(window.innerWidth < 768) toggleSidebar(false);
+        }
+
+        function toggleSidebar(force) {
+            const sidebar = document.getElementById('sidebar');
+            const menu = document.getElementById('mobile-menu');
+            const isOpen = force !== undefined ? !force : sidebar.classList.contains('translate-x-0');
+            
+            if(!isOpen) {
+                sidebar.classList.remove('-translate-x-full');
+                sidebar.classList.add('translate-x-0');
+                menu.classList.remove('hidden');
+            } else {
+                sidebar.classList.add('-translate-x-full');
+                sidebar.classList.remove('translate-x-0');
+                menu.classList.add('hidden');
+            }
         }
 
         function toggleModal(id, show) {
             document.getElementById(id).classList.toggle('hidden', !show);
         }
 
+        // API CONSUMPTION
         async function fetchStats() {
-            const res = await fetch('/api/stats');
-            const data = await res.json();
-            document.getElementById('stat-bots').innerText = data.total_bots;
-            document.getElementById('stat-users').innerText = data.total_users;
+            try {
+                const res = await fetch('/api/stats');
+                const data = await res.json();
+                document.getElementById('stat-bots').innerText = data.total_bots;
+                document.getElementById('stat-users').innerText = data.total_users;
+                document.getElementById('stat-today').innerText = data.today_users;
+            } catch(e) { console.error("Stats fail", e); }
         }
 
         async function fetchBots() {
-            const res = await fetch('/api/bots');
-            const bots = await res.json();
-            const list = document.getElementById('bots-list');
-            list.innerHTML = bots.map(bot => `
-                <div class="glass p-6 rounded-2xl">
-                    <div class="flex justify-between items-start mb-4">
-                        <h3 class="text-indigo-400 font-bold text-lg">@${bot.username}</h3>
-                        <span class="text-[10px] bg-indigo-500/20 px-2 py-1 rounded text-indigo-300 font-bold">ACTIVE</span>
-                    </div>
-                    <p class="text-sm text-slate-400 mb-6">Users: ${bot.total_users}</p>
-                    <div class="flex space-x-2">
-                        <button onclick='openEditor(${JSON.stringify(bot)})' class="flex-1 bg-slate-800 hover:bg-slate-700 py-2 rounded-lg text-xs font-bold transition-all"><i class="fas fa-cog mr-1"></i> Config</button>
-                        <button onclick="deleteBot('${bot.token}')" class="px-4 bg-red-500/10 text-red-500 py-2 rounded-lg text-xs"><i class="fas fa-trash"></i></button>
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        async function fetchUsers() {
-            const res = await fetch('/api/users');
-            const users = await res.json();
-            document.getElementById('user-table').innerHTML = users.map(u => `
-                <tr class="border-t border-slate-800 hover:bg-slate-800/30">
-                    <td class="p-4">@${u.username} <br> <small class="text-slate-500">${u.user_id}</small></td>
-                    <td class="p-4 text-indigo-400">Bot Instance</td>
-                    <td class="p-4 font-bold text-green-400">${u.points}</td>
-                    <td class="p-4 text-slate-500">${new Date(u.joined_at).toLocaleDateString()}</td>
-                </tr>
-            `).join('');
-        }
-
-        async function saveBot() {
-            const token = document.getElementById('new-token').value;
-            const admin_id = document.getElementById('new-admin').value;
-            const res = await fetch('/api/bots/add', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ token, admin_id })
-            });
-            if(res.ok) { toggleModal('addBotModal', false); fetchBots(); }
-            else { alert("Token Invalid or already exists"); }
-        }
-
-        function openEditor(bot) {
-            document.getElementById('edit-token').value = bot.token;
-            document.getElementById('edit-msg').value = bot.welcome_msg;
-            document.getElementById('edit-type').value = bot.welcome_type;
-            document.getElementById('edit-media').value = bot.welcome_media || '';
-            document.getElementById('edit-channels').value = bot.force_channels || '';
-            document.getElementById('edit-header').innerText = '@' + bot.username;
-            toggleModal('editBotModal', true);
-        }
-
-        async function updateBot() {
-            const payload = {
-                token: document.getElementById('edit-token').value,
-                welcome_msg: document.getElementById('edit-msg').value,
-                welcome_type: document.getElementById('edit-type').value,
-                welcome_media: document.getElementById('edit-media').value,
-                force_channels: document.getElementById('edit-channels').value
-            };
-            const res = await fetch('/api/bots/update', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(payload)
-            });
-            if(res.ok) { alert("Settings Updated!"); toggleModal('editBotModal', false); fetchBots(); }
-        }
-
-        async function deleteBot(token) {
-            if(!confirm("Delete this bot?")) return;
-            await fetch('/api/bots/control', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ token, action: 'delete' })
-            });
-            fetchBots();
-        }
-
-        // Init
-        fetchStats();
-    </script>
-</body>
-</html>
+            try {
+                const res = await fetch('/api/bots');
+                const bots = await res.json();
+                const grid = document.getElementById('bots-grid');
+                grid.innerHTML = bots.map(bot => `
+                    <div class="glass-card p-6 rounded-3xl flex flex-col h-full group transition-all hover:border-indigo-500/50">
+                        <div class="flex justify-between items-start mb-6">
+                            <div class="bg-indigo-500/10 p-3 rounded-2xl">
+        
