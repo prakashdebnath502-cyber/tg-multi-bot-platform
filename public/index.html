@@ -333,4 +333,176 @@
                     <div class="glass-card p-6 rounded-3xl flex flex-col h-full group transition-all hover:border-indigo-500/50">
                         <div class="flex justify-between items-start mb-6">
                             <div class="bg-indigo-500/10 p-3 rounded-2xl">
-        
+                                <i class="fas fa-robot text-2xl text-indigo-400"></i>
+                            </div>
+                            <span class="text-[10px] font-black uppercase px-3 py-1 rounded-full ${bot.status === 'active' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'}">
+                                ${bot.status}
+                            </span>
+                        </div>
+                        <h4 class="text-xl font-bold text-white mb-1">@${bot.username}</h4>
+                        <p class="text-xs text-slate-500 font-mono mb-4">Admin: ${bot.admin_id}</p>
+                        <div class="mt-auto pt-6 border-t border-slate-800 grid grid-cols-2 gap-3">
+                            <button onclick='openEditor(${JSON.stringify(bot)})' class="bg-slate-800 hover:bg-slate-700 py-2.5 rounded-xl text-xs font-bold transition-all">Config</button>
+                            <button onclick="apiControlBot('${bot.token}', 'delete')" class="bg-red-500/5 hover:bg-red-500 hover:text-white text-red-500 py-2.5 rounded-xl text-xs font-bold transition-all">Delete</button>
+                        </div>
+                    </div>
+                `).join('');
+            } catch(e) { console.error("Bots fail", e); }
+        }
+
+        async function fetchUsers() {
+            try {
+                const res = await fetch('/api/users');
+                const users = await res.json();
+                const tbody = document.getElementById('user-table-body');
+                tbody.innerHTML = users.map(u => `
+                    <tr class="hover:bg-slate-800/20 transition-all">
+                        <td class="px-6 py-4">
+                            <div class="flex items-center gap-3">
+                                <div class="h-9 w-9 rounded-full bg-slate-800 flex items-center justify-center font-bold text-indigo-400">U</div>
+                                <div>
+                                    <p class="font-bold text-white text-sm">@${u.username || 'unknown'}</p>
+                                    <p class="text-[10px] text-slate-500">ID: ${u.user_id}</p>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 text-xs text-slate-400 font-mono">Token: ...${u.bot_token.slice(-5)}</td>
+                        <td class="px-6 py-4">
+                            <span class="bg-indigo-500/10 text-indigo-400 text-xs font-bold px-2 py-1 rounded-md">${u.points} pts</span>
+                        </td>
+                        <td class="px-6 py-4 text-xs text-slate-500">
+                            ${new Date(u.joined_at).toLocaleDateString()}
+                        </td>
+                    </tr>
+                `).join('');
+            } catch(e) { console.error("Users fail", e); }
+        }
+
+        // ACTIONS
+        async function apiAddBot() {
+            const token = document.getElementById('token').value;
+            const admin_id = document.getElementById('admin').value;
+            const btn = document.getElementById('saveBotBtn');
+            
+            if(!token || !admin_id) return alert("Please fill all fields");
+            btn.disabled = true;
+            btn.innerText = "Connecting...";
+
+            const res = await fetch('/api/bots/add', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ token, admin_id })
+            });
+            const data = await res.json();
+            
+            if(data.success) {
+                toggleModal('addBotModal', false);
+                showPage('bots');
+                document.getElementById('token').value = '';
+                document.getElementById('admin').value = '';
+            } else {
+                alert(data.error);
+            }
+            btn.disabled = false;
+            btn.innerText = "Verify & Link Bot";
+        }
+
+        function openEditor(bot) {
+            document.getElementById('edit-id').value = bot.token;
+            document.getElementById('edit-title').innerText = '@' + bot.username;
+            document.getElementById('edit-msg').value = bot.welcome_msg;
+            document.getElementById('edit-type').value = bot.welcome_type;
+            document.getElementById('edit-media').value = bot.welcome_media || '';
+            document.getElementById('edit-channels').value = bot.force_channels || '';
+            document.getElementById('edit-btns').value = bot.welcome_buttons || '';
+            document.getElementById('edit-parse').value = bot.parse_mode || 'HTML';
+            toggleModal('editBotModal', true);
+        }
+
+        async function apiUpdateBot() {
+            const payload = {
+                token: document.getElementById('edit-id').value,
+                welcome_msg: document.getElementById('edit-msg').value,
+                welcome_type: document.getElementById('edit-type').value,
+                welcome_media: document.getElementById('edit-media').value,
+                force_channels: document.getElementById('edit-channels').value,
+                welcome_buttons: document.getElementById('edit-btns').value,
+                parse_mode: document.getElementById('edit-parse').value
+            };
+
+            const res = await fetch('/api/bots/update', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(payload)
+            });
+            if(res.ok) {
+                alert("Settings Updated (Hot-Reload Active)");
+                toggleModal('editBotModal', false);
+                fetchBots();
+            }
+        }
+
+        async function apiControlBot(token, action) {
+            if(action === 'delete' && !confirm("Warning: This will delete the bot and its local user data. Continue?")) return;
+            await fetch('/api/bots/control', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ token, action })
+            });
+            fetchBots();
+        }
+
+        // BROADCAST
+        async function populateBotSelect() {
+            const res = await fetch('/api/bots');
+            const bots = await res.json();
+            const select = document.getElementById('bc-bot');
+            select.innerHTML = bots.map(b => `<option value="${b.token}">@${b.username}</option>`).join('');
+        }
+
+        document.getElementById('bc-type').addEventListener('change', (e) => {
+            document.getElementById('bc-media-wrapper').classList.toggle('hidden', e.target.value === 'text');
+        });
+
+        async function startBroadcast() {
+            const btn = document.getElementById('bc-btn');
+            const payload = {
+                token: document.getElementById('bc-bot').value,
+                message: document.getElementById('bc-msg').value,
+                type: document.getElementById('bc-type').value,
+                media: document.getElementById('bc-media').value,
+                buttons: document.getElementById('bc-btns').value
+            };
+
+            if(!payload.message) return alert("Please enter a message");
+            
+            btn.disabled = true;
+            btn.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i> Sending...`;
+            
+            const res = await fetch('/api/bots/broadcast', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            alert(`Broadcast Started for ${data.total} users! Check logs for results.`);
+            
+            btn.disabled = false;
+            btn.innerHTML = `<i class="fas fa-paper-plane mr-2"></i> Dispatch Broadcast`;
+        }
+
+        function filterUsers() {
+            const q = document.getElementById('userSearch').value.toLowerCase();
+            document.querySelectorAll('#user-table-body tr').forEach(tr => {
+                tr.style.display = tr.innerText.toLowerCase().includes(q) ? '' : 'none';
+            });
+        }
+
+        // INIT
+        window.onload = () => {
+            fetchStats();
+            setInterval(fetchStats, 15000); // Live stats update
+        };
+    </script>
+</body>
+</html>
