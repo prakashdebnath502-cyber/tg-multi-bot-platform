@@ -1,178 +1,328 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BotManager Pro | Dashboard</title>
+    <title>BotManager Pro | Admin Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
     <style>
-        body { background-color: #0f172a; color: #f8fafc; }
-        .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); }
-        .btn-primary { background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%); transition: transform 0.2s; }
-        .btn-primary:hover { transform: scale(1.02); }
+        body { font-family: 'Inter', sans-serif; background-color: #0b0f1a; color: #e2e8f0; }
+        .sidebar-item.active { background: rgba(99, 102, 241, 0.15); border-right: 4px solid #6366f1; color: #818cf8; }
+        .glass-card { background: rgba(30, 41, 59, 0.4); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.05); }
+        .gradient-text { background: linear-gradient(135deg, #818cf8 0%, #c084fc 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+        .modal-bg { background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(4px); }
+        .status-dot { height: 10px; width: 10px; border-radius: 50%; display: inline-block; }
+        .page-section { display: none; }
+        .page-section.active { display: block; animation: fadeIn 0.3s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
-<body class="p-4 md:p-8">
-    <div class="max-w-6xl mx-auto">
-        <header class="flex justify-between items-center mb-8">
-            <div>
-                <h1 class="text-3xl font-bold text-white">BotManager <span class="text-indigo-400">Pro</span></h1>
-                <p class="text-gray-400">Multi-Bot Hosting Panel</p>
-            </div>
-            <button onclick="document.getElementById('addBotModal').classList.toggle('hidden')" class="btn-primary px-6 py-2 rounded-lg font-semibold">
-                <i class="fas fa-plus mr-2"></i> Add New Bot
-            </button>
-        </header>
+<body class="h-screen flex overflow-hidden">
 
-        <!-- Stats Grid -->
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8" id="statsGrid">
-            <div class="glass p-6 rounded-2xl">
-                <p class="text-gray-400 text-sm">Total Bots</p>
-                <h2 class="text-2xl font-bold" id="stat-total-bots">0</h2>
-            </div>
-            <div class="glass p-6 rounded-2xl">
-                <p class="text-gray-400 text-sm">Total Users</p>
-                <h2 class="text-2xl font-bold" id="stat-total-users">0</h2>
-            </div>
-            <div class="glass p-6 rounded-2xl">
-                <p class="text-gray-400 text-sm">Live Bots</p>
-                <h2 class="text-green-400 text-2xl font-bold" id="stat-active-bots">0</h2>
-            </div>
-            <div class="glass p-6 rounded-2xl">
-                <p class="text-gray-400 text-sm">Growth (24h)</p>
-                <h2 class="text-indigo-400 text-2xl font-bold" id="stat-new-users">0</h2>
+    <!-- SIDEBAR -->
+    <aside class="w-64 glass-card border-r flex flex-col hidden md:flex">
+        <div class="p-6">
+            <h1 class="text-2xl font-bold gradient-text"><i class="fas fa-robot mr-2"></i>BotPro</h1>
+        </div>
+        <nav class="flex-1 mt-4">
+            <a href="javascript:void(0)" onclick="showPage('overview')" class="sidebar-item active flex items-center px-6 py-4 transition-all">
+                <i class="fas fa-chart-line w-6"></i> Overview
+            </a>
+            <a href="javascript:void(0)" onclick="showPage('bots')" class="sidebar-item flex items-center px-6 py-4 transition-all">
+                <i class="fas fa-server w-6"></i> My Bots
+            </a>
+            <a href="javascript:void(0)" onclick="showPage('users')" class="sidebar-item flex items-center px-6 py-4 transition-all">
+                <i class="fas fa-users w-6"></i> User List
+            </a>
+            <a href="javascript:void(0)" onclick="showPage('broadcast')" class="sidebar-item flex items-center px-6 py-4 transition-all">
+                <i class="fas fa-bullhorn w-6"></i> Broadcast
+            </a>
+        </nav>
+        <div class="p-4 border-t border-slate-800">
+            <div class="flex items-center space-x-3 p-2 bg-slate-900/50 rounded-xl">
+                <div class="bg-indigo-500 h-8 w-8 rounded-lg flex items-center justify-center text-xs font-bold">AD</div>
+                <div>
+                    <p class="text-xs font-semibold">Administrator</p>
+                    <p class="text-[10px] text-gray-500">Live Server Active</p>
+                </div>
             </div>
         </div>
+    </aside>
 
-        <!-- Bots List -->
-        <div id="botsList" class="grid grid-cols-1 gap-6">
-            <!-- Bot cards will be injected here -->
+    <!-- MAIN CONTENT -->
+    <main class="flex-1 flex flex-col min-w-0 overflow-hidden">
+        
+        <!-- TOP NAV -->
+        <header class="h-16 glass-card flex items-center justify-between px-8 z-10">
+            <h2 id="page-title" class="text-lg font-semibold">Overview</h2>
+            <div class="flex items-center space-x-4">
+                <div id="connection-status" class="flex items-center text-xs text-green-400 bg-green-400/10 px-3 py-1 rounded-full">
+                    <span class="status-dot bg-green-400 mr-2"></span> System Online
+                </div>
+                <button onclick="openAddBotModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-sm px-4 py-2 rounded-lg transition-all font-medium">
+                    <i class="fas fa-plus mr-2"></i> Add Bot
+                </button>
+            </div>
+        </header>
+
+        <!-- CONTENT AREA -->
+        <div class="flex-1 overflow-y-auto p-8 custom-scrollbar">
+            
+            <!-- SECTION: OVERVIEW -->
+            <section id="overview" class="page-section active">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                    <div class="glass-card p-6 rounded-2xl">
+                        <p class="text-slate-400 text-xs font-bold uppercase tracking-wider">Total Bots</p>
+                        <h3 class="text-3xl font-bold mt-1" id="stat-bots">0</h3>
+                    </div>
+                    <div class="glass-card p-6 rounded-2xl border-l-4 border-indigo-500">
+                        <p class="text-slate-400 text-xs font-bold uppercase tracking-wider">Total Users</p>
+                        <h3 class="text-3xl font-bold mt-1" id="stat-users">0</h3>
+                    </div>
+                    <div class="glass-card p-6 rounded-2xl border-l-4 border-green-500">
+                        <p class="text-slate-400 text-xs font-bold uppercase tracking-wider">New Users (24h)</p>
+                        <h3 class="text-3xl font-bold mt-1 text-green-400" id="stat-new">0</h3>
+                    </div>
+                    <div class="glass-card p-6 rounded-2xl border-l-4 border-purple-500">
+                        <p class="text-slate-400 text-xs font-bold uppercase tracking-wider">Top Referrer</p>
+                        <h3 class="text-3xl font-bold mt-1" id="stat-ref">0 <span class="text-xs text-slate-500">pts</span></h3>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div class="glass-card p-6 rounded-2xl">
+                        <h3 class="font-bold mb-4">Quick Activities</h3>
+                        <div id="activity-log" class="space-y-4 text-sm">
+                            <div class="flex items-center text-slate-400 italic">No recent activities found...</div>
+                        </div>
+                    </div>
+                    <div class="glass-card p-6 rounded-2xl">
+                        <h3 class="font-bold mb-4">Server Resources</h3>
+                        <div class="space-y-4">
+                            <div>
+                                <div class="flex justify-between text-xs mb-1"><span>Memory Usage</span><span>42%</span></div>
+                                <div class="w-full bg-slate-800 rounded-full h-2"><div class="bg-indigo-500 h-2 rounded-full" style="width: 42%"></div></div>
+                            </div>
+                            <div>
+                                <div class="flex justify-between text-xs mb-1"><span>Bot Uptime</span><span>99.9%</span></div>
+                                <div class="w-full bg-slate-800 rounded-full h-2"><div class="bg-green-500 h-2 rounded-full" style="width: 99%"></div></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION: BOTS -->
+            <section id="bots" class="page-section">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="bots-grid">
+                    <!-- Bot Cards Dynamic -->
+                </div>
+            </section>
+
+            <!-- SECTION: USERS -->
+            <section id="users" class="page-section">
+                <div class="glass-card rounded-2xl overflow-hidden">
+                    <div class="p-6 border-b border-slate-800 flex flex-wrap justify-between items-center gap-4">
+                        <h3 class="font-bold text-lg">User Database</h3>
+                        <div class="flex space-x-2 w-full md:w-auto">
+                            <input type="text" id="user-search" onkeyup="filterUsers()" placeholder="Search username or ID..." class="bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-indigo-500 w-full">
+                        </div>
+                    </div>
+                    <table class="w-full text-left text-sm">
+                        <thead class="bg-slate-900/50 text-slate-400">
+                            <tr>
+                                <th class="px-6 py-4">User Info</th>
+                                <th class="px-6 py-4">Bot</th>
+                                <th class="px-6 py-4">Referred By</th>
+                                <th class="px-6 py-4">Points</th>
+                                <th class="px-6 py-4">Joined At</th>
+                            </tr>
+                        </thead>
+                        <tbody id="user-table-body">
+                            <!-- User Rows Dynamic -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- SECTION: BROADCAST -->
+            <section id="broadcast" class="page-section">
+                <div class="max-w-2xl mx-auto glass-card p-8 rounded-2xl">
+                    <h3 class="text-xl font-bold mb-6 text-indigo-400"><i class="fas fa-paper-plane mr-2"></i>Create Global Broadcast</h3>
+                    <div class="space-y-6">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Select Target Bot</label>
+                            <select id="bc-bot-token" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 focus:outline-none focus:border-indigo-500"></select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Message Media Type</label>
+                            <select id="bc-type" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 focus:outline-none">
+                                <option value="text">Pure Text</option>
+                                <option value="photo">Photo</option>
+                                <option value="video">Video</option>
+                                <option value="animation">GIF / Animation</option>
+                                <option value="document">Document</option>
+                            </select>
+                        </div>
+                        <div id="bc-media-input" class="hidden">
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Media URL or File ID</label>
+                            <input type="text" id="bc-media" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-sm" placeholder="https://... or Telegram FileID">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Message Body (HTML Supported)</label>
+                            <textarea id="bc-msg" rows="5" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-sm focus:outline-none focus:border-indigo-500" placeholder="Hello users! Check out this new update..."></textarea>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Inline Buttons (JSON Format)</label>
+                            <textarea id="bc-btns" rows="2" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-sm font-mono text-indigo-300" placeholder='[[{"text":"Visit Site","url":"https://..."}]]'></textarea>
+                        </div>
+                        <button onclick="sendBroadcast()" id="bc-send-btn" class="w-full bg-indigo-600 py-4 rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-500/20">
+                            Start Broadcast
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+        </div>
+    </main>
+
+    <!-- MODAL: ADD BOT -->
+    <div id="addBotModal" class="hidden fixed inset-0 modal-bg z-50 flex items-center justify-center p-4">
+        <div class="glass-card w-full max-w-md rounded-2xl p-8 shadow-2xl">
+            <h3 class="text-2xl font-bold mb-6">Connect New Bot</h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="text-xs text-slate-400 font-bold uppercase">Telegram Bot Token</label>
+                    <input id="new-token" type="password" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 mt-1 focus:border-indigo-500 outline-none" placeholder="123456:ABC...">
+                </div>
+                <div>
+                    <label class="text-xs text-slate-400 font-bold uppercase">Admin Chat ID</label>
+                    <input id="new-admin" type="text" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 mt-1 outline-none" placeholder="512345678">
+                </div>
+                <div class="pt-4 flex space-x-3">
+                    <button onclick="saveBot()" class="flex-1 bg-indigo-600 py-3 rounded-xl font-bold">Verify & Connect</button>
+                    <button onclick="closeModals()" class="px-6 py-3 border border-slate-700 rounded-xl text-slate-400">Cancel</button>
+                </div>
+            </div>
         </div>
     </div>
 
-    <!-- Add Bot Modal -->
-    <div id="addBotModal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center p-4">
-        <div class="glass p-8 rounded-2xl w-full max-w-md">
-            <h2 class="text-2xl font-bold mb-4">Add Telegram Bot</h2>
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-sm text-gray-400 mb-1">Bot Token</label>
-                    <input id="tokenInput" type="text" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white focus:outline-none focus:border-indigo-500" placeholder="123456:ABC-DEF...">
+    <!-- MODAL: ADVANCED EDITOR -->
+    <div id="editBotModal" class="hidden fixed inset-0 modal-bg z-50 flex items-center justify-center p-4 overflow-y-auto">
+        <div class="glass-card w-full max-w-2xl rounded-2xl p-8 my-auto">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-xl font-bold">Advanced Settings: <span id="edit-username" class="text-indigo-400">@bot</span></h3>
+                <button onclick="closeModals()" class="text-slate-500 hover:text-white"><i class="fas fa-times text-xl"></i></button>
+            </div>
+            
+            <input type="hidden" id="edit-token">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Welcome Config -->
+                <div class="space-y-4">
+                    <h4 class="text-xs font-black text-indigo-500 uppercase">Welcome Config</h4>
+                    <div>
+                        <label class="text-[10px] font-bold text-slate-400">Welcome Text</label>
+                        <textarea id="edit-msg" rows="3" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm focus:outline-none"></textarea>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="text-[10px] font-bold text-slate-400">Media Type</label>
+                            <select id="edit-type" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs">
+                                <option value="text">None</option>
+                                <option value="photo">Photo</option>
+                                <option value="video">Video</option>
+                                <option value="animation">GIF</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-bold text-slate-400">Parse Mode</label>
+                            <select id="edit-parse" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs">
+                                <option value="HTML">HTML</option>
+                                <option value="Markdown">Markdown</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-bold text-slate-400">Media URL / FileID</label>
+                        <input id="edit-media" type="text" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs">
+                    </div>
                 </div>
-                <div>
-                    <label class="block text-sm text-gray-400 mb-1">Admin Chat ID</label>
-                    <input id="adminIdInput" type="text" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white focus:outline-none focus:border-indigo-500" placeholder="512345678">
+
+                <!-- Features Config -->
+                <div class="space-y-4">
+                    <h4 class="text-xs font-black text-indigo-500 uppercase">Feature Config</h4>
+                    <div>
+                        <label class="text-[10px] font-bold text-slate-400">Force Join Channels (split with ,)</label>
+                        <input id="edit-channels" type="text" placeholder="@ChannelName, @Sponsor" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs">
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-bold text-slate-400">Welcome Buttons (JSON)</label>
+                        <textarea id="edit-btns" rows="3" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs font-mono"></textarea>
+                    </div>
                 </div>
-                <button onclick="addBot()" id="saveBotBtn" class="w-full btn-primary py-3 rounded-lg font-bold">Verify & Connect</button>
-                <button onclick="document.getElementById('addBotModal').classList.add('hidden')" class="w-full text-gray-400 text-sm">Cancel</button>
+            </div>
+
+            <div class="mt-8 flex justify-end space-x-3">
+                <button onclick="previewWelcome()" class="px-4 py-2 text-xs border border-indigo-500 text-indigo-400 rounded-lg">Test In-Bot</button>
+                <button onclick="updateSettings()" class="px-8 py-2 bg-indigo-600 rounded-lg font-bold text-sm">Save All Changes</button>
             </div>
         </div>
     </div>
 
     <script>
+        // --- NAVIGATION ENGINE ---
+        function showPage(pageId) {
+            document.querySelectorAll('.page-section').forEach(p => p.classList.remove('active'));
+            document.getElementById(pageId).classList.add('active');
+            
+            document.querySelectorAll('.sidebar-item').forEach(i => i.classList.remove('active'));
+            event.currentTarget.classList.add('active');
+            
+            document.getElementById('page-title').innerText = pageId.charAt(0).toUpperCase() + pageId.slice(1);
+            if(pageId === 'users') fetchUsers();
+            if(pageId === 'bots') fetchBots();
+            if(pageId === 'overview') fetchStats();
+        }
+
+        // --- API INTEGRATION ---
+        async function fetchStats() {
+            try {
+                const res = await fetch('/api/stats');
+                const data = await res.json();
+                document.getElementById('stat-bots').innerText = data.total_bots;
+                document.getElementById('stat-users').innerText = data.total_users;
+                document.getElementById('stat-new').innerText = data.today_users;
+            } catch(e) {}
+        }
+
         async function fetchBots() {
             const res = await fetch('/api/bots');
             const bots = await res.json();
+            const grid = document.getElementById('bots-grid');
+            const select = document.getElementById('bc-bot-token');
             
-            // Update Stats
-            document.getElementById('stat-total-bots').innerText = bots.length;
-            document.getElementById('stat-active-bots').innerText = bots.filter(b => b.status === 'active').length;
-            document.getElementById('stat-total-users').innerText = bots.reduce((a, b) => a + b.total_users, 0);
-            document.getElementById('stat-new-users').innerText = bots.reduce((a, b) => a + b.new_users, 0);
+            grid.innerHTML = '';
+            select.innerHTML = '<option value="">Select a Bot</option>';
 
-            // Update List
-            const list = document.getElementById('botsList');
-            list.innerHTML = bots.map(bot => `
-                <div class="glass p-6 rounded-2xl">
-                    <div class="flex flex-wrap justify-between items-start">
-                        <div>
-                            <h3 class="text-xl font-bold text-indigo-400">@${bot.username}</h3>
-                            <p class="text-sm text-gray-500">ID: ${bot.admin_id}</p>
-                        </div>
-                        <div class="flex space-x-2">
-                            <span class="px-3 py-1 rounded-full text-xs font-bold ${bot.status === 'active' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}">
-                                ${bot.status.toUpperCase()}
-                            </span>
-                        </div>
-                    </div>
-                    
-                    <div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-8">
-                        <div>
-                            <h4 class="font-semibold mb-3 text-gray-300">Configuration</h4>
-                            <div class="space-y-3">
-                                <input type="text" value="${bot.welcome_msg}" id="msg-${bot.token}" class="w-full bg-slate-800 rounded p-2 text-sm border border-slate-700">
-                                <input type="text" placeholder="Force Join Channels (@ch1, @ch2)" value="${bot.force_channels}" id="ch-${bot.token}" class="w-full bg-slate-800 rounded p-2 text-sm border border-slate-700">
-                                <div class="flex space-x-2">
-                                    <button onclick="updateBot('${bot.token}')" class="bg-indigo-600 hover:bg-indigo-700 px-4 py-2 rounded text-sm">Save Settings</button>
-                                    <button onclick="broadcast('${bot.token}')" class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded text-sm">Broadcast</button>
-                                </div>
+            bots.forEach(bot => {
+                // Populate broadcast select
+                select.innerHTML += `<option value="${bot.token}">@${bot.username}</option>`;
+
+                // Create Card
+                grid.innerHTML += `
+                    <div class="glass-card p-6 rounded-2xl relative overflow-hidden group">
+                        <div class="flex justify-between mb-4">
+                            <div>
+                                <h3 class="font-bold text-lg text-indigo-400">@${bot.username}</h3>
+                                <p class="text-[10px] text-slate-500">UID: ${bot.admin_id}</p>
                             </div>
-                        </div>
-                        <div class="flex flex-col justify-end items-end space-y-2">
-                             <button onclick="botAction('${bot.token}', 'delete')" class="text-red-400 hover:text-red-300 text-sm"><i class="fas fa-trash mr-1"></i> Delete Bot</button>
-                        </div>
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        async function addBot() {
-            const token = document.getElementById('tokenInput').value;
-            const admin_id = document.getElementById('adminIdInput').value;
-            const btn = document.getElementById('saveBotBtn');
-            
-            btn.innerText = "Verifying...";
-            const res = await fetch('/api/bots/add', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ token, admin_id })
-            });
-            const data = await res.json();
-            
-            if (data.success) {
-                location.reload();
-            } else {
-                alert(data.error || "Failed to add bot");
-                btn.innerText = "Verify & Connect";
-            }
-        }
-
-        async function updateBot(token) {
-            const welcome_msg = document.getElementById(`msg-${token}`).value;
-            const force_channels = document.getElementById(`ch-${token}`).value;
-            await fetch('/api/bots/update', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ token, welcome_msg, force_channels, welcome_type: 'text' })
-            });
-            alert("Settings updated!");
-        }
-
-        async function botAction(token, action) {
-            if (!confirm(`Are you sure you want to ${action}?`)) return;
-            await fetch('/api/bots/action', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ token, action })
-            });
-            fetchBots();
-        }
-
-        async function broadcast(token) {
-            const msg = prompt("Enter message to broadcast to all users:");
-            if (!msg) return;
-            const res = await fetch('/api/bots/broadcast', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ token, message: msg, type: 'text' })
-            });
-            const data = await res.json();
-            alert(`Broadcast sent to ${data.count} users!`);
-        }
-
-        fetchBots();
-        setInterval(fetchBots, 30000); // Auto refresh every 30s
-    </script>
-</body>
-</html>
+                            <span class="h-8 w-8 rounded-full flex items-center justify-center ${bot.status === 'active' ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}">
+                                <i class="fas fa-circle text-[8px]"></i>
+                            </span>
+           
